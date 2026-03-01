@@ -26,6 +26,22 @@ def compile_headers(line):
     >>> compile_headers('      # this is not a header')
     '      # this is not a header'
     '''
+    if line[:2] == '# ':
+    #why doesnt this line do anything?
+    # answer: stringd are *immutable*; they never change
+    # so functions that "seem like they should change the string"
+    # actually return a new string with the changes, and leave the original string unchanged
+        line = line.replace('# ', '<h1> ') + '</h1>'
+    if line[:3] == '## ':
+        line = line.replace('## ', '<h2> ') + '</h2>'
+    if line[:4] == '### ':
+        line = line.replace('### ', '<h3> ') + '</h3>'
+    if line[:5] == '#### ':
+        line = line.replace('#### ', '<h4> ') + '</h4>'
+    if line[:6] == '##### ':
+        line = line.replace('##### ', '<h5> ') + '</h5>'
+    if line[:7] == '###### ':
+        line = line.replace('###### ', '<h6> ') + '</h6>'
     return line
 
 
@@ -50,27 +66,51 @@ def compile_italic_star(line):
     >>> compile_italic_star('*')
     '*'
     '''
+    start = 0
+    while True:
+        start = line.find("*", start)
+        if start == -1:
+            break
+        end = line.find("*", start + 1)
+        if end == -1:
+            break
+        line = line[:start] + "<i>" + line[start+1:end] + "</i>" + line[end+1:]
+        start += 3  # Move past the newly inserted <i> tag
     return line
 
 
-def compile_italic_underscore(line):
+def compile_italic_star(line):
     '''
-    Convert "_italic_" into "<i>italic</i>".
+    Convert "*italic*" into "<i>italic</i>".
 
     HINT:
-    This function is almost exactly the same as `compile_italic_star`.
+    Italics require carefully tracking the beginning and ending positions of the text to be replaced.
+    This is similar to the `delete_HTML` function that we implemented in class.
+    It's a tiny bit more complicated since we are not just deleting substrings from the text,
+    but also adding replacement substrings.
 
-    >>> compile_italic_underscore('_This is italic!_ This is not italic.')
+    >>> compile_italic_star('*This is italic!* This is not italic.')
     '<i>This is italic!</i> This is not italic.'
-    >>> compile_italic_underscore('_This is italic!_')
+    >>> compile_italic_star('*This is italic!*')
     '<i>This is italic!</i>'
-    >>> compile_italic_underscore('This is _italic_!')
+    >>> compile_italic_star('This is *italic*!')
     'This is <i>italic</i>!'
-    >>> compile_italic_underscore('This is not _italic!')
-    'This is not _italic!'
-    >>> compile_italic_underscore('_')
-    '_'
+    >>> compile_italic_star('This is not *italic!')
+    'This is not *italic!'
+    >>> compile_italic_star('*')
+    '*'
     '''
+    
+    start = 0
+    while True:
+        start = line.find("*", start)
+        if start == -1:
+            break
+        end = line.find("*", start + 1)
+        if end == -1:
+            break
+        line = line[:start] + "<i>" + line[start+1:end] + "</i>" + line[end+1:]
+        start += 3  # Move past the newly inserted <i> tag
     return line
 
 
@@ -94,6 +134,16 @@ def compile_strikethrough(line):
     >>> compile_strikethrough('~~')
     '~~'
     '''
+    start = 0
+    while True:
+        start = line.find("~~", start)
+        if start == -1:
+            break
+        end = line.find("~~", start + 2)
+        if end == -1:
+            break
+        line = line[:start] + "<ins>" + line[start+2:end] + "</ins>" + line[end+2:]
+        start += 5  # Move past the newly inserted <ins> tag
     return line
 
 
@@ -115,6 +165,16 @@ def compile_bold_stars(line):
     >>> compile_bold_stars('**')
     '**'
     '''
+    start = 0
+    while True:
+        start = line.find("**", start)
+        if start == -1:
+            break
+        end = line.find("**", start + 2)
+        if end == -1:
+            break
+        line = line[:start] + "<b>" + line[start+2:end] + "</b>" + line[end+2:]
+        start += 4  # Move past the newly inserted <b> tag
     return line
 
 
@@ -136,6 +196,16 @@ def compile_bold_underscore(line):
     >>> compile_bold_underscore('__')
     '__'
     '''
+    start = 0
+    while True:
+        start = line.find("__", start)
+        if start == -1:
+            break
+        end = line.find("__", start + 2)
+        if end == -1:
+            break
+        line = line[:start] + "<b>" + line[start+2:end] + "</b>" + line[end+2:]
+        start += 4  # Move past the newly inserted <b> tag
     return line
 
 
@@ -166,6 +236,30 @@ def compile_code_inline(line):
     >>> compile_code_inline('```python3')
     '```python3'
     '''
+    if "```" in line:
+        return line
+
+    start = 0
+    while True:
+        start = line.find("`", start)
+        if start == -1:
+            break
+
+        end = line.find("`", start + 1)
+        if end == -1:
+            break
+
+        content = line[start+1:end]
+        content = content.replace("<", "&lt;")
+        content = content.replace(">", "&gt;")
+
+        replacement = f"<code>{content}</code>"
+
+        line = line[:start] + replacement + line[end+1:]
+
+        # Move past the inserted replacement
+        start += len(replacement)
+
     return line
 
 
@@ -186,6 +280,33 @@ def compile_links(line):
     >>> compile_links('this is wrong: [course webpage](https://github.com/mikeizbicki/cmc-csci040')
     'this is wrong: [course webpage](https://github.com/mikeizbicki/cmc-csci040'
     '''
+    start = 0
+    while True:
+        start = line.find("[", start)
+        if start == -1:
+            break
+
+        end = line.find("]", start + 1)
+        if end == -1:
+            break
+
+        # Require '(' immediately after ']'
+        if end + 1 >= len(line) or line[end + 1] != "(":
+            start = end + 1
+            continue
+
+        url_start = end + 1
+        url_end = line.find(")", url_start + 1)
+        if url_end == -1:
+            break
+
+        text = line[start+1:end]
+        url = line[url_start+1:url_end]
+
+        replacement = f'<a href="{url}">{text}</a>'
+        line = line[:start] + replacement + line[url_end+1:]
+        start += len(replacement)
+
     return line
 
 
@@ -205,4 +326,23 @@ def compile_images(line):
     >>> compile_images('This is an image of Mike Izbicki: ![Mike Izbicki](https://avatars1.githubusercontent.com/u/1052630?v=2&s=460)')
     'This is an image of Mike Izbicki: <img src="https://avatars1.githubusercontent.com/u/1052630?v=2&s=460" alt="Mike Izbicki" />'
     '''
+    start = 0
+    while True:
+        start = line.find("![", start)
+        if start == -1:
+            break
+        end = line.find("]", start + 1)
+        if end == -1:
+            break
+        url_start = line.find("(", end + 1)
+        if url_start == -1:
+            break
+        url_end = line.find(")", url_start + 1)
+        if url_end == -1:
+            break
+        # Extract the image alt text and URL
+        alt_text = line[start+2:end]
+        url = line[url_start+1:url_end]
+        # Replace the markdown image with HTML img tag
+        line = line[:start] + f'<img src="{url}" alt="{alt_text}" />' + line[url_end+1:]
     return line
