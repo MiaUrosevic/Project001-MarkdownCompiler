@@ -7,7 +7,7 @@ from markdown_compiler.util.line_functions import *
 
 
 def compile_lines(text):
-    r'''
+    
     Apply all markdown transformations to the input text.
 
     NOTE:
