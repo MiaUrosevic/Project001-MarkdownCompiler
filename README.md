@@ -1,8 +1,8 @@
 # Markdown to HTML compiler
 
-![](https://github.com/MiaUrosevic/markdown-compiler/workflows/doctests/badge.svg)&nbsp;
-![](https://github.com/MiaUrosevic/markdown-compiler/workflows/flake8/badge.svg)&nbsp;
-![](https://github.com/MiaUrosevic/markdown-compiler/workflows/command_line/badge.svg)&nbsp;
+![](https://github.com/MiaUrosevic/Project001-MarkdownCompiler/workflows/doctests/badge.svg)&nbsp;
+![](https://github.com/MiaUrosevic/Project001-MarkdownCompiler/workflows/flake8/badge.svg)&nbsp;
+![](https://github.com/MiaUrosevic/Project001-MarkdownCompiler/workflows/command_line/badge.svg)&nbsp;
 
 A simple project for converting markdown files to HTML.
 
