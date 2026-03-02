@@ -3,7 +3,18 @@ This file contains functions that work on entire documents at a time
 (and not line-by-line).
 '''
 
-from markdown_compiler.util.line_functions import *
+
+from markdown_compiler.util.line_functions import (
+    compile_bold_stars,
+    compile_bold_underscore,
+    compile_code_inline,
+    compile_headers,
+    compile_italic_star,
+    compile_italic_underscore,
+    compile_strikethrough,
+    compile_links,
+    compile_images,
+)
 
 
 def compile_lines(text):
@@ -132,29 +143,65 @@ def compile_lines(text):
     '''
     lines = text.split('\n')
     new_lines = []
+
     in_paragraph = False
+    in_code_block = False
+
     for line in lines:
-        line = line.strip()
-        if line=='':
+        stripped = line.strip()
+
+        # Handle code block start/end
+        if stripped == '```':
+            if in_code_block:
+                # closing code block
+                new_lines.append('</pre>')
+                in_code_block = False
+            else:
+                # opening code block
+                if in_paragraph:
+                    new_lines.append('</p>')
+                    in_paragraph = False
+                new_lines.append('<pre>')
+                in_code_block = True
+            continue
+
+        # If inside a code block, do NOT process markdown
+        if in_code_block:
+            new_lines.append(line)
+            continue
+
+        # Handle blank lines
+        if stripped == '':
             if in_paragraph:
-                line='</p>'
+                new_lines.append('</p>')
                 in_paragraph = False
-        else:
-            if line[0] != '#' and not in_paragraph:
-                in_paragraph = True
-                line = '<p>\n'+line
-            line = compile_headers(line)
-            line = compile_strikethrough(line)
-            line = compile_bold_stars(line)
-            line = compile_bold_underscore(line)
-            line = compile_italic_star(line)
-            line = compile_italic_underscore(line)
-            line = compile_code_inline(line)
-            line = compile_images(line)
-            line = compile_links(line)
+            else:
+                new_lines.append('')
+            continue
+
+        # Normal paragraph handling
+        if not in_paragraph and stripped[0] != '#':
+            new_lines.append('<p>')
+            in_paragraph = True
+
+        # Apply inline markdown transformations
+        line = compile_headers(line)
+        line = compile_strikethrough(line)
+        line = compile_bold_stars(line)
+        line = compile_bold_underscore(line)
+        line = compile_italic_star(line)
+        line = compile_italic_underscore(line)
+        line = compile_code_inline(line)
+        line = compile_images(line)
+        line = compile_links(line)
+
         new_lines.append(line)
-    new_text = '\n'.join(new_lines)
-    return new_text
+
+    # Close paragraph if file ends while inside one
+    if in_paragraph:
+        new_lines.append('</p>')
+
+    return '\n'.join(new_lines)
 
 
 def markdown_to_html(markdown, add_css):
@@ -225,7 +272,8 @@ def minify(html):
     >>> minify('a\n\n\n\n\n\n\n\n\n\n\n\n\n\nb\n\n\n\n\n\n\n\n\n\n')
     'a b'
     '''
-    return html
+    words = html.split()
+    return ' '.join(words)
 
 
 def convert_file(input_file, add_css):
