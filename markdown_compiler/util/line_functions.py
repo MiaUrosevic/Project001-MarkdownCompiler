@@ -2,6 +2,7 @@
 Each of the functions in this file takes a single line of input and transforms the line in some way.
 '''
 
+
 def compile_headers(line):
     '''
     Convert markdown headers into <h1>,<h2>,etc tags.
@@ -27,10 +28,10 @@ def compile_headers(line):
     '      # this is not a header'
     '''
     if line[:2] == '# ':
-    #why doesnt this line do anything?
-    # answer: stringd are *immutable*; they never change
-    # so functions that "seem like they should change the string"
-    # actually return a new string with the changes, and leave the original string unchanged
+        # why doesnt this line do anything?
+        # answer: stringd are *immutable*; they never change
+        # so functions that "seem like they should change the string"
+        # actually return a new string with the changes, and leave the original string unchanged
         line = line.replace('# ', '<h1> ') + '</h1>'
     if line[:3] == '## ':
         line = line.replace('## ', '<h2> ') + '</h2>'
@@ -74,7 +75,7 @@ def compile_italic_star(line):
         end = line.find("*", start + 1)
         if end == -1:
             break
-        line = line[:start] + "<i>" + line[start+1:end] + "</i>" + line[end+1:]
+        line = line[:start] + "<i>" + line[start + 1:end] + "</i>" + line[end + 1:]
         start += 3  # Move past the newly inserted <i> tag
     return line
 
@@ -102,7 +103,7 @@ def compile_italic_underscore(line):
         end = line.find("_", start + 1)
         if end == -1:
             break
-        line = line[:start] + "<i>" + line[start+1:end] + "</i>" + line[end+1:]
+        line = line[:start] + "<i>" + line[start + 1:end] + "</i>" + line[end + 1:]
         start += len("<i></i>")  # Move past the inserted tags
     return line
 
@@ -135,7 +136,7 @@ def compile_strikethrough(line):
         end = line.find("~~", start + 2)
         if end == -1:
             break
-        line = line[:start] + "<ins>" + line[start+2:end] + "</ins>" + line[end+2:]
+        line = line[:start] + "<ins>" + line[start + 2:end] + "</ins>" + line[end + 2:]
         start += 5  # Move past the newly inserted <ins> tag
     return line
 
@@ -166,7 +167,7 @@ def compile_bold_stars(line):
         end = line.find("**", start + 2)
         if end == -1:
             break
-        line = line[:start] + "<b>" + line[start+2:end] + "</b>" + line[end+2:]
+        line = line[:start] + "<b>" + line[start + 2:end] + "</b>" + line[end + 2:]
         start += 4  # Move past the newly inserted <b> tag
     return line
 
@@ -197,7 +198,7 @@ def compile_bold_underscore(line):
         end = line.find("__", start + 2)
         if end == -1:
             break
-        line = line[:start] + "<b>" + line[start+2:end] + "</b>" + line[end+2:]
+        line = line[:start] + "<b>" + line[start + 2:end] + "</b>" + line[end + 2:]
         start += 4  # Move past the newly inserted <b> tag
     return line
 
@@ -242,13 +243,13 @@ def compile_code_inline(line):
         if end == -1:
             break
 
-        content = line[start+1:end]
+        content = line[start + 1:end]
         content = content.replace("<", "&lt;")
         content = content.replace(">", "&gt;")
 
         replacement = f"<code>{content}</code>"
 
-        line = line[:start] + replacement + line[end+1:]
+        line = line[:start] + replacement + line[end + 1:]
 
         # Move past the inserted replacement
         start += len(replacement)
@@ -293,11 +294,11 @@ def compile_links(line):
         if url_end == -1:
             break
 
-        text = line[start+1:end]
-        url = line[url_start+1:url_end]
+        text = line[start + 1:end]
+        url = line[url_start + 1:url_end]
 
         replacement = f'<a href="{url}">{text}</a>'
-        line = line[:start] + replacement + line[url_end+1:]
+        line = line[:start] + replacement + line[url_end + 1:]
         start += len(replacement)
 
     return line
@@ -334,8 +335,8 @@ def compile_images(line):
         if url_end == -1:
             break
         # Extract the image alt text and URL
-        alt_text = line[start+2:end]
-        url = line[url_start+1:url_end]
+        alt_text = line[start + 2:end]
+        url = line[url_start + 1:url_end]
         # Replace the markdown image with HTML img tag
-        line = line[:start] + f'<img src="{url}" alt="{alt_text}" />' + line[url_end+1:]
+        line = line[:start] + f'<img src="{url}" alt="{alt_text}" />' + line[url_end + 1:]
     return line
