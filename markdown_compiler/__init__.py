@@ -1,24 +1,25 @@
-'''
+"""
 This file contains functions that work on entire documents at a time
 (and not line-by-line).
-'''
+"""
 
+import re
 
 from markdown_compiler.util.line_functions import (
+    compile_headers,
+    compile_strikethrough,
     compile_bold_stars,
     compile_bold_underscore,
-    compile_code_inline,
-    compile_headers,
     compile_italic_star,
     compile_italic_underscore,
-    compile_strikethrough,
-    compile_links,
+    compile_code_inline,
     compile_images,
+    compile_links,
 )
 
 
 def compile_lines(text):
-    '''
+    r'''
     Apply all markdown transformations to the input text.
 
     NOTE:
@@ -74,10 +75,6 @@ def compile_lines(text):
 
     NOTE:
     This second set of test cases tests multiline code blocks.
-
-    HINT:
-    In order to get some of these test cases to pass,
-    you will have to both add new code and remove some of the existing code that I provide you.
 
     >>> print(compile_lines("""
     ... ```
@@ -141,50 +138,50 @@ def compile_lines(text):
     </pre>
     <BLANKLINE>
     '''
-    lines = text.split('\n')
-    new_lines = []
+    lines = text.split("\n")
 
+    out = []
     in_paragraph = False
     in_code_block = False
 
-    for line in lines:
-        stripped = line.strip()
+    for raw in lines:
+        stripped = raw.strip()
 
-        # Handle code block start/end
-        if stripped == '```':
-            if in_code_block:
-                # closing code block
-                new_lines.append('</pre>')
-                in_code_block = False
-            else:
-                # opening code block
-                if in_paragraph:
-                    new_lines.append('</p>')
-                    in_paragraph = False
-                new_lines.append('<pre>')
+        if stripped == "```":
+            if not in_code_block:
                 in_code_block = True
+                out.append("<pre>")
+            else:
+                in_code_block = False
+                out.append("</pre>")
             continue
 
-        # If inside a code block, do NOT process markdown
         if in_code_block:
-            new_lines.append(line)
+            out.append(raw.rstrip("\n"))
             continue
 
-        # Handle blank lines
-        if stripped == '':
+        if stripped == "":
             if in_paragraph:
-                new_lines.append('</p>')
+                out.append("</p>")
                 in_paragraph = False
             else:
-                new_lines.append('')
+                out.append("")
             continue
 
-        # Normal paragraph handling
-        if not in_paragraph and stripped[0] != '#':
-            new_lines.append('<p>')
-            in_paragraph = True
+        if stripped.startswith("#"):
+            if in_paragraph:
+                out.append("</p>")
+                in_paragraph = False
 
-        # Apply inline markdown transformations
+            line = compile_headers(stripped)
+            out.append(line)
+            continue
+
+        if not in_paragraph:
+            in_paragraph = True
+            out.append("<p>")
+
+        line = stripped
         line = compile_headers(line)
         line = compile_strikethrough(line)
         line = compile_bold_stars(line)
@@ -194,14 +191,15 @@ def compile_lines(text):
         line = compile_code_inline(line)
         line = compile_images(line)
         line = compile_links(line)
+        out.append(line)
 
-        new_lines.append(line)
+    if in_code_block:
+        out.append("</pre>")
 
-    # Close paragraph if file ends while inside one
     if in_paragraph:
-        new_lines.append('</p>')
+        out.append("</p>")
 
-    return '\n'.join(new_lines)
+    return "\n".join(out)
 
 
 def markdown_to_html(markdown, add_css):
@@ -209,39 +207,30 @@ def markdown_to_html(markdown, add_css):
     Convert the input markdown into valid HTML,
     optionally adding CSS formatting.
 
-    NOTE:
-    This function is separated out from the `compile_lines` function so that the doctests are much simpler.
-    In particular, by splitting these functions in two,
-    there's no need to add all of the HTML boilerplate code to the doctests in `compile_lines`.
-
-    NOTE:
-    The code for this function is simple enough that we don't even have a "real" doctest.
-    The only purpose of this doctest is to run the function and ensure that there are no errors.
-    The `assert` function prints no output whenever the input is "truthy".
-
     >>> assert(markdown_to_html('this *is* a _test_', False))
     >>> assert(markdown_to_html('this *is* a _test_', True))
     '''
-
-    html = '''
+    html = """
 <html>
 <head>
     <style>
     ins { text-decoration: line-through; }
     </style>
-    '''
+"""
     if add_css:
-        html += '''
+        html += """
 <link rel="stylesheet" href="https://izbicki.me/css/code.css" />
 <link rel="stylesheet" href="https://izbicki.me/css/default.css" />
-        '''
-    html+='''
+"""
+    html += """
 </head>
 <body>
-    '''+compile_lines(markdown)+'''
+"""
+    html += compile_lines(markdown)
+    html += """
 </body>
 </html>
-    '''
+"""
     return html
 
 
@@ -249,13 +238,6 @@ def minify(html):
     r'''
     Remove redundant whitespace (spaces and newlines) from the input HTML,
     and convert all whitespace characters into spaces.
-
-    NOTE:
-    When we transfer HTML files over the internet,
-    we'd like them to be as small as possible in order to save bandwidth and make the webpage load faster.
-    Minifying html documents is an important step for webservers.
-    It may not seem like much, but at the scale of Google/Facebook,
-    it can reduce costs by millions of dollars annually.
 
     >>> minify('       ')
     ''
@@ -272,8 +254,7 @@ def minify(html):
     >>> minify('a\n\n\n\n\n\n\n\n\n\n\n\n\n\nb\n\n\n\n\n\n\n\n\n\n')
     'a b'
     '''
-    words = html.split()
-    return ' '.join(words)
+    return re.sub(r"\s+", " ", html).strip()
 
 
 def convert_file(input_file, add_css):
@@ -281,26 +262,20 @@ def convert_file(input_file, add_css):
     Convert the input markdown file into an HTML file.
     If the input filename is `README.md`,
     then the output filename will be `README.html`.
-
-    NOTE:
-    It is difficult to write meaningful doctests for functions that deal with files.
-    This is because we would have to create a bunch of different files to do so.
-    Therefore, there are no tests for this function.
-    But we can still be confident that this function will work because of the extensive tests on the "helper functions" that this function depends on.
     '''
+    if input_file[-3:] != ".md":
+        raise ValueError("input_file does not end in .md")
 
-    # validate that the input file is a markdown file
-    if input_file[-3:] != '.md':
-        raise ValueError('input_file does not end in .md')
-
-    # load the input file
-    with open(input_file, 'r') as f:
+    with open(input_file, "r") as f:
         markdown = f.read()
 
-    # generate the HTML from the Markdown
     html = markdown_to_html(markdown, add_css)
     html = minify(html)
 
-    # write the output file
-    with open(input_file[:-2]+'html', 'w') as f:
+    with open(input_file[:-2] + "html", "w") as f:
         f.write(html)
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
